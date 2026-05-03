@@ -3,18 +3,9 @@ controllers:
     serviceAccount:
       identifier: &app fingerjoin
 
-    pod:
-      securityContext:
-        runAsUser: 65532
-        runAsNonRoot: true
-        runAsGroup: 65532
-        fsGroup: 65532
-        fsGroupChangePolicy: OnRootMismatch
-        seccompProfile:
-          type: RuntimeDefault
-
     containers:
       main:
+        enabled: true
         image:
           repository: ghcr.io/m00nwtchr/fingerjoin
           tag: master
@@ -34,8 +25,19 @@ controllers:
             memory: 128Mi
             ephemeral-storage: 256Mi
 
-  serviceAccount:
-    *app : {}
+    pod:
+      securityContext:
+        runAsUser: 65532
+        runAsNonRoot: true
+        runAsGroup: 65532
+        fsGroup: 65532
+        fsGroupChangePolicy: OnRootMismatch
+        seccompProfile:
+          type: RuntimeDefault
+
+serviceAccount:
+  fingerjoin:
+    enabled: true
 
 service:
   main:
