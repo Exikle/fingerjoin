@@ -62,7 +62,7 @@ jobs:
       - name: Sign chart
         if: github.event_name != 'pull_request'
         run: |
-          cosign sign --yes ghcr.io/${{ github.repository }}/fingerjoin:${{ github.sha }}
+          cosign sign --yes ghcr.io/${{ github.repository }}/fingerjoin:${{ github.ref_name }}-${{ github.sha }}
         env:
           COSIGN_FULFILLMENT_CHALLENGE: true
           COSIGN_EXPERIMENTAL: 1
