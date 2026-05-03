@@ -66,17 +66,10 @@ jobs:
         if: github.event_name != 'pull_request'
         uses: sigstore/cosign-installer@v3
 
-      - name: Get chart digest
-        if: github.event_name != 'pull_request'
-        id: digest
-        run: |
-          DIGEST=$(helm registry digest oci://${{ env.HELM_REGISTRY }}/${{ env.HELM_IMAGE_NAME }}:${{ steps.version.outputs.VERSION }} 2>/dev/null | grep -o 'sha256:[a-f0-9]*')
-          echo "DIGEST=$DIGEST" >> $GITHUB_OUTPUT
-
       - name: Sign chart
         if: github.event_name != 'pull_request'
         run: |
-          cosign sign --yes oci://${{ env.HELM_REGISTRY }}/${{ env.HELM_IMAGE_NAME }}@${{ steps.digest.outputs.DIGEST }}
+          cosign sign --yes ${{ env.HELM_REGISTRY }}/${{ env.HELM_IMAGE_NAME }}:${{ steps.version.outputs.VERSION }}
         env:
           COSIGN_FULFILLMENT_CHALLENGE: true
           COSIGN_EXPERIMENTAL: 1
