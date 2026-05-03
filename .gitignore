@@ -1,6 +1,5 @@
 .devenv
 /target
-/Cargo.lock
 .direnv
 .envrc
 *.swp
