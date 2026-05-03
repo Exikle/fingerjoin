@@ -68,7 +68,8 @@ struct RouteRule {
 
 #[derive(Debug, serde::Deserialize)]
 struct BackendRef {
-    backend: BackendName,
+    #[serde(default)]
+    backend: Option<BackendName>,
     #[serde(rename = "port", default)]
     port: Option<u16>,
 }
@@ -133,16 +134,21 @@ pub async fn start_reconciler(client: kube::Client, state: Arc<BackendState>) {
                 None => continue,
             };
 
-            let backend = match rule.backend_refs.first() {
+            let backend_entry = match rule.backend_refs.first() {
                 Some(b) => b,
                 None => continue,
             };
 
-            let port = backend.port.unwrap_or(if https { 443 } else { 80 });
+            let backend_name = match backend_entry.backend.as_ref() {
+                Some(n) => n,
+                None => continue,
+            };
+
+            let port = backend_entry.port.unwrap_or(if https { 443 } else { 80 });
             let scheme = if https { "https" } else { "http" };
-            let url = format!("{}://{}:{}", scheme, backend.backend.name, port);
+            let url = format!("{}://{}:{}", scheme, backend_name.name, port);
             all_backends.push(Backend {
-                name: backend.backend.name.clone(),
+                name: backend_name.name.clone(),
                 url: url::Url::parse(&url).unwrap(),
                 priority,
             });
