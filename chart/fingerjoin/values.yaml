@@ -1,7 +1,7 @@
 controllers:
   main:
     serviceAccount:
-      name: &app fingerjoin
+      identifier: &app fingerjoin
 
     pod:
       securityContext:
@@ -33,6 +33,9 @@ controllers:
           limits:
             memory: 128Mi
             ephemeral-storage: 256Mi
+
+  serviceAccount:
+    *app : {}
 
 service:
   main:
