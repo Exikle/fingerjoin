@@ -34,6 +34,13 @@ controllers:
             memory: 128Mi
             ephemeral-storage: 256Mi
 
+service:
+  main:
+    ports:
+      http:
+        port: 80
+        targetPort: 8080
+
 rbac:
   roles:
     fingerjoin:
