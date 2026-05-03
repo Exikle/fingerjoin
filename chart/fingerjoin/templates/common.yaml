@@ -1,0 +1,41 @@
+{{/*
+The fingerjoin WebFinger aggregation proxy.
+
+Usage:
+  helm install fingerjoin ./chart/fingerjoin -n fingerjoin --create-namespace
+
+Configuration:
+  The fingerjoin proxy watches HTTPRoutes with these annotations:
+  - fingerjoin.naktis.eu/webfinger: "true" (required to enable)
+  - fingerjoin.naktis.eu/priority: "50" (optional, default 50)
+  - fingerjoin.naktis.eu/https: "true" (optional, default false)
+  - fingerjoin.naktis.eu/backend: "0" (optional, which backend rule to use)
+
+Example HTTPRoute:
+  apiVersion: gateway.networking.k8s.io/v1
+  kind: HTTPRoute
+  metadata:
+    annotations:
+      fingerjoin.naktis.eu/webfinger: "true"
+      fingerjoin.naktis.eu/https: "true"
+      fingerjoin.naktis.eu/priority: "100"
+  spec:
+    parentRefs:
+      - my-gateway
+    rules:
+      - backendRefs:
+          - name: my-service
+            port: 443
+*/}}
+
+{{- include "bjw-s.common.loader.init" . -}}
+
+{{- define "app-template.hardcodedValues" -}}
+{{- if not .Values.global.nameOverride }}
+global:
+  nameOverride: {{ .Release.Name | quote }}
+{{- end }}
+{{- end -}}
+{{- $_ := mergeOverwrite .Values (include "app-template.hardcodedValues" . | fromYaml) -}}
+
+{{- include "bjw-s.common.loader.generate" . -}}

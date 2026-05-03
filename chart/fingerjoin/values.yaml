@@ -1,0 +1,94 @@
+controllers:
+  main:
+    enabled: true
+    type: deployment
+    replicas: 1
+
+    serviceAccount:
+      create: true
+      name: fingerjoin
+      automountServiceAccountToken: false
+
+    securityContext:
+      runAsUser: 1000
+      runAsNonRoot: true
+      runAsGroup: 1000
+      fsGroup: 1000
+      fsGroupChangePolicy: OnRootMismatch
+      seccompProfile:
+        type: RuntimeDefault
+      sysctls: []
+
+    pod:
+      securityContext:
+        seccompProfile:
+          type: RuntimeDefault
+      automountServiceAccountToken: false
+      hostNetwork: false
+      hostPID: false
+      hostIPC: false
+      dnsPolicy: ClusterFirst
+
+    containers:
+      main:
+        image:
+          repository: ghcr.io/naktis/fingerjoin
+          tag: "latest"
+          pullPolicy: IfNotPresent
+
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+              - ALL
+          readOnlyRootFilesystem: true
+          privileged: false
+          seccompProfile:
+            type: RuntimeDefault
+
+        resources:
+          requests:
+            cpu: 10m
+            memory: 32Mi
+          limits:
+            memory: 128Mi
+            ephemeral-storage: 256Mi
+
+        probes:
+          liveness:
+            enabled: false
+          readiness:
+            enabled: false
+          startup:
+            enabled: false
+
+service:
+  main:
+    enabled: false
+
+ingress:
+  main:
+    enabled: false
+
+rbac:
+  roles:
+    fingerjoin:
+      enabled: true
+      type: ClusterRole
+      label: "{{ .Release.Name }}-fingerjoin"
+      rules:
+        - apiGroups: ["gateway.networking.k8s.io"]
+          resources: ["httproutes"]
+          verbs: ["get", "list", "watch"]
+  bindings:
+    fingerjoin:
+      enabled: true
+      type: ClusterRoleBinding
+      label: "{{ .Release.Name }}-fingerjoin"
+      subjects:
+        - kind: ServiceAccount
+          name: fingerjoin
+          namespace: "{{ .Release.Namespace }}"
+      roleRef:
+        kind: ClusterRole
+        identifier: fingerjoin
