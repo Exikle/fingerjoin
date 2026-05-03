@@ -92,7 +92,7 @@ jobs:
       - name: Sign image
         if: github.event_name != 'pull_request'
         run: |
-          cosign sign --yes ${{ env.REGISTRY }}:${{ github.sha }}
+          cosign sign --yes ${{ env.REGISTRY }}:master
         env:
           COSIGN_FULFILLMENT_CHALLENGE: true
           COSIGN_EXPERIMENTAL: 1
