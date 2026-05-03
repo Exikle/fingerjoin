@@ -76,6 +76,7 @@ jobs:
             type=semver,pattern={{version}}
 
       - name: Build and push
+        id: build
         uses: docker/build-push-action@v6
         with:
           context: .
@@ -84,6 +85,7 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+          outputs: type=image,name=${{ env.REGISTRY }}:master
 
       - name: Install cosign
         if: github.event_name != 'pull_request'
@@ -92,7 +94,7 @@ jobs:
       - name: Sign image
         if: github.event_name != 'pull_request'
         run: |
-          cosign sign --yes ${{ env.REGISTRY }}:master
+          cosign sign --yes ${{ env.REGISTRY }}:master@${{ steps.build.outputs.digest }}
         env:
           COSIGN_FULFILLMENT_CHALLENGE: true
           COSIGN_EXPERIMENTAL: 1
