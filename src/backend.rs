@@ -6,6 +6,7 @@ use tokio::sync::Semaphore;
 use url::Url;
 
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct Backend {
     pub name: String,
     pub url: Url,

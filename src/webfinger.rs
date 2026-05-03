@@ -39,6 +39,7 @@ impl JrdResource {
 }
 
 #[derive(Debug, thiserror::Error)]
+#[allow(dead_code)]
 pub enum Error {
     #[error("invalid JRD format")]
     InvalidFormat,
