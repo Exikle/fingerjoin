@@ -71,7 +71,7 @@ jobs:
         with:
           images: ${{ env.REGISTRY }}
           tags: |
-            type=sha,prefix=,suffix=,format=sha
+            type=sha,prefix=,suffix=,format=raw
             type=ref,event=branch
             type=semver,pattern={{version}}
 
