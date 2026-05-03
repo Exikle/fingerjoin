@@ -1,50 +1,30 @@
 controllers:
   main:
-    enabled: true
-    type: deployment
-    replicas: 1
-
     serviceAccount:
-      create: true
-      name: fingerjoin
-      automountServiceAccountToken: false
-
-    securityContext:
-      runAsUser: 1000
-      runAsNonRoot: true
-      runAsGroup: 1000
-      fsGroup: 1000
-      fsGroupChangePolicy: OnRootMismatch
-      seccompProfile:
-        type: RuntimeDefault
-      sysctls: []
+      name: &app fingerjoin
 
     pod:
       securityContext:
+        runAsUser: 65532
+        runAsNonRoot: true
+        runAsGroup: 65532
+        fsGroup: 65532
+        fsGroupChangePolicy: OnRootMismatch
         seccompProfile:
           type: RuntimeDefault
-      automountServiceAccountToken: false
-      hostNetwork: false
-      hostPID: false
-      hostIPC: false
-      dnsPolicy: ClusterFirst
 
     containers:
       main:
         image:
-          repository: ghcr.io/naktis/fingerjoin
-          tag: "latest"
+          repository: ghcr.io/m00nwtchr/fingerjoin
+          tag: master
           pullPolicy: IfNotPresent
 
         securityContext:
           allowPrivilegeEscalation: false
-          capabilities:
-            drop:
-              - ALL
+          capabilities: { drop: [ALL]}
           readOnlyRootFilesystem: true
           privileged: false
-          seccompProfile:
-            type: RuntimeDefault
 
         resources:
           requests:
@@ -54,26 +34,9 @@ controllers:
             memory: 128Mi
             ephemeral-storage: 256Mi
 
-        probes:
-          liveness:
-            enabled: false
-          readiness:
-            enabled: false
-          startup:
-            enabled: false
-
-service:
-  main:
-    enabled: false
-
-ingress:
-  main:
-    enabled: false
-
 rbac:
   roles:
     fingerjoin:
-      enabled: true
       type: ClusterRole
       label: "{{ .Release.Name }}-fingerjoin"
       rules:
@@ -82,13 +45,12 @@ rbac:
           verbs: ["get", "list", "watch"]
   bindings:
     fingerjoin:
-      enabled: true
       type: ClusterRoleBinding
       label: "{{ .Release.Name }}-fingerjoin"
       subjects:
         - kind: ServiceAccount
-          name: fingerjoin
+          name: *app
           namespace: "{{ .Release.Namespace }}"
       roleRef:
         kind: ClusterRole
-        identifier: fingerjoin
+        identifier: *app
