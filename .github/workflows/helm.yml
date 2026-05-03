@@ -55,10 +55,12 @@ jobs:
         run: |
           helm push /tmp/charts/fingerjoin-*.tgz oci://ghcr.io/${{ github.repository }}/fingerjoin
 
-      - name: Get version
+      - name: Get chart digest
         if: github.event_name != 'pull_request'
-        run: echo "version=$(helm show chart /tmp/charts/fingerjoin-*.tgz | grep '^version:' | awk '{print $2}')" >> $GITHUB_OUTPUT
-        id: version
+        run: |
+          DIGEST=$(helm registry digest oci://ghcr.io/${{ github.repository }}/fingerjoin --version ${{ github.sha }} 2>&1 | grep -oP 'sha256:[a-f0-9]+')
+          echo "digest=$DIGEST" >> $GITHUB_OUTPUT
+        id: digest
 
       - name: Install cosign
         if: github.event_name != 'pull_request'
@@ -67,7 +69,7 @@ jobs:
       - name: Sign chart
         if: github.event_name != 'pull_request'
         run: |
-          cosign sign --yes ghcr.io/${{ github.repository }}/fingerjoin:${{ steps.version.outputs.version }}
+          cosign sign --yes ghcr.io/${{ github.repository }}/fingerjoin@${{ steps.digest.outputs.digest }}
         env:
           COSIGN_FULFILLMENT_CHALLENGE: true
           COSIGN_EXPERIMENTAL: 1
