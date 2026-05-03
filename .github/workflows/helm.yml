@@ -15,7 +15,6 @@ on:
 env:
   CARGO_TERM_COLOR: always
   HELM_REGISTRY: ghcr.io/${{ github.repository_owner }}/charts
-  HELM_IMAGE_NAME: ${{ github.event.repository.name }}
 
 jobs:
   helm:
@@ -60,7 +59,7 @@ jobs:
       - name: Push chart
         if: github.event_name != 'pull_request'
         run: |
-          helm push ./dist/*.tgz oci://${{ env.HELM_REGISTRY }}/${{ env.HELM_IMAGE_NAME }} | tee push_output.txt
+          helm push ./dist/*.tgz oci://${{ env.HELM_REGISTRY }}
 
       - name: Install cosign
         if: github.event_name != 'pull_request'
@@ -69,7 +68,7 @@ jobs:
       - name: Sign chart
         if: github.event_name != 'pull_request'
         run: |
-          cosign sign --yes ${{ env.HELM_REGISTRY }}/${{ env.HELM_IMAGE_NAME }}:${{ steps.version.outputs.VERSION }}
+          cosign sign --yes ${{ env.HELM_REGISTRY }}/fingerjoin:${{ steps.version.outputs.VERSION }}
         env:
           COSIGN_FULFILLMENT_CHALLENGE: true
           COSIGN_EXPERIMENTAL: 1
