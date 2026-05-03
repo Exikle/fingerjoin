@@ -55,6 +55,11 @@ jobs:
         run: |
           helm push /tmp/charts/fingerjoin-*.tgz oci://ghcr.io/${{ github.repository }}/fingerjoin
 
+      - name: Get version
+        if: github.event_name != 'pull_request'
+        run: echo "version=$(helm show chart /tmp/charts/fingerjoin-*.tgz | grep '^version:' | awk '{print $2}')" >> $GITHUB_OUTPUT
+        id: version
+
       - name: Install cosign
         if: github.event_name != 'pull_request'
         uses: sigstore/cosign-installer@v3
@@ -62,7 +67,7 @@ jobs:
       - name: Sign chart
         if: github.event_name != 'pull_request'
         run: |
-          cosign sign --yes ghcr.io/${{ github.repository }}/fingerjoin:${{ github.ref_name }}-${{ github.sha }}
+          cosign sign --yes ghcr.io/${{ github.repository }}/fingerjoin:${{ steps.version.outputs.version }}
         env:
           COSIGN_FULFILLMENT_CHALLENGE: true
           COSIGN_EXPERIMENTAL: 1
