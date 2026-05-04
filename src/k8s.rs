@@ -1,5 +1,10 @@
 use crate::backend::Backend;
-use std::collections::BTreeMap;
+use kube::{
+    Client,
+    api::{Api, ListParams, NotUsed, Object},
+    discovery::Discovery,
+};
+use serde::Deserialize;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 use tokio::time::{Duration, interval};
@@ -38,35 +43,19 @@ impl Default for BackendState {
     }
 }
 
-#[derive(Debug, serde::Deserialize)]
-struct RouteList {
-    items: Vec<Route>,
-}
-
-#[derive(Debug, serde::Deserialize)]
-struct Route {
-    metadata: Metadata,
+#[derive(Debug, Clone, Deserialize)]
+struct HTTPRouteSpec {
     #[serde(default)]
-    spec: RouteSpec,
-}
-
-#[derive(Debug, serde::Deserialize)]
-struct Metadata {
-    annotations: Option<BTreeMap<String, String>>,
-}
-
-#[derive(Debug, serde::Deserialize, Default)]
-struct RouteSpec {
     rules: Vec<RouteRule>,
 }
 
-#[derive(Debug, serde::Deserialize)]
+#[derive(Debug, Clone, Deserialize)]
 struct RouteRule {
     #[serde(rename = "backendRefs", default)]
     backend_refs: Vec<BackendRef>,
 }
 
-#[derive(Debug, serde::Deserialize)]
+#[derive(Debug, Clone, Deserialize)]
 struct BackendRef {
     #[serde(default)]
     backend: Option<BackendName>,
@@ -74,24 +63,36 @@ struct BackendRef {
     port: Option<u16>,
 }
 
-#[derive(Debug, serde::Deserialize)]
+#[derive(Debug, Clone, Deserialize)]
 struct BackendName {
     name: String,
 }
 
-pub async fn start_reconciler(client: kube::Client, state: Arc<BackendState>) {
+type HTTPRoute = Object<HTTPRouteSpec, NotUsed>;
+
+pub async fn start_reconciler(client: Client, state: Arc<BackendState>) {
     let mut ticker = interval(Duration::from_secs(30));
+
+    let discovery = Discovery::new(client.clone())
+        .run()
+        .await
+        .expect("failed to discover apis");
+    let apigroup = discovery
+        .groups()
+        .find(|g| g.name() == "gateway.networking.k8s.io")
+        .expect("gateway.networking.k8s.io not found");
+    let (ar, _caps) = apigroup
+        .recommended_resources()
+        .iter()
+        .find(|(ar, _)| ar.kind == "HttpRoute")
+        .expect("HttpRoute not found")
+        .clone();
+    let api: Api<HTTPRoute> = Api::all_with(client.clone(), &ar);
 
     loop {
         ticker.tick().await;
 
-        let request = http::Request::builder()
-            .method(http::Method::GET)
-            .uri("/apis/gateway.networking.k8s.io/v1/httproutes?limit=100")
-            .body(Vec::new())
-            .unwrap();
-
-        let routes: RouteList = match client.request(request).await {
+        let routes = match api.list(&ListParams::default()).await {
             Ok(r) => r,
             Err(e) => {
                 error!(err = %e, "failed to list httproutes");
@@ -100,7 +101,7 @@ pub async fn start_reconciler(client: kube::Client, state: Arc<BackendState>) {
         };
 
         let mut all_backends = Vec::new();
-        for route in routes.items {
+        for route in routes {
             let annotations = match route.metadata.annotations.as_ref() {
                 Some(a) => a,
                 None => continue,
@@ -160,6 +161,7 @@ pub async fn start_reconciler(client: kube::Client, state: Arc<BackendState>) {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::collections::BTreeMap;
 
     fn make_annotations(
         webfinger: Option<&str>,
